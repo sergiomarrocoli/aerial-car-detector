@@ -78,3 +78,46 @@ def test_matching_pairs_each_car_once_and_scores_precision_and_recall():
     assert sorted(tp for _, tp in results) == [False, False, True, True]
     ((t, p, r, f1),) = curve(results, len(truth), thresholds=(0.5,))
     assert abs(p - 0.5) < 1e-9 and abs(r - 2 / 3) < 1e-9
+
+
+def test_fill_removes_a_car_and_leaves_the_rest_of_the_road_alone():
+    from cardet.fill import fill_cars
+    rng = np.random.default_rng(1)
+    road = (110 + rng.normal(0, 3, (120, 160, 3))).clip(0, 255).astype(np.uint8)
+    dirty = road.copy()
+    dirty[50:58, 70:90] = (200, 30, 30)                                    # a red car
+    box = {"cx": 80.0, "cy": 54.0, "l": 20.0, "w": 8.0, "a": 0.0}
+    clean = fill_cars(dirty, [box])
+    assert abs(float(clean[50:58, 70:90].mean()) - 110) < 8                  # car replaced by road colour
+    assert np.array_equal(clean[:20], dirty[:20])                            # far from any box: untouched
+    assert clean[50:58, 70:90].std() > 1                                     # grain, not a flat patch
+
+
+def test_fill_with_no_boxes_returns_the_same_pixels():
+    from cardet.fill import fill_cars
+    img = np.full((40, 40, 3), 90, np.uint8)
+    assert np.array_equal(fill_cars(img, []), img)
+
+
+def test_a_row_of_cars_is_filled_from_the_tarmac_not_the_neighbours():
+    from cardet.fill import fill_cars
+    img = np.full((80, 200, 3), 100, np.uint8)
+    boxes = []
+    for i in range(6):
+        x = 20 + i * 25
+        img[34:46, x:x + 20] = (220, 220, 220)                              # white cars side by side
+        boxes.append({"cx": x + 10.0, "cy": 40.0, "l": 20.0, "w": 12.0, "a": 0.0})
+    clean = fill_cars(img, boxes)
+    assert clean[30:50, 15:170].mean() < 112                                 # no white left behind
+
+
+def test_tight_fill_keeps_a_painted_line_just_outside_the_box():
+    from cardet.fill import fill_cars
+    img = np.full((80, 120, 3), 100, np.uint8)
+    img[48, 20:100] = (240, 240, 240)                                       # a white road line just below the box
+    img[30:38, 55:75] = (30, 30, 160)                                       # a blue car
+    box = {"cx": 65.0, "cy": 36.0, "l": 20.0, "w": 8.0, "a": 0.0}           # box spans rows 26-46
+    tight, loose = fill_cars(img, [box]), fill_cars(img, [box], tight=False)
+    assert tight[30:38, 55:75].mean() < 120                                 # car gone
+    assert tight[48, 60:70].mean() > 200                                    # line intact
+    assert loose[48, 60:70].mean() < 200                                    # the whole-box fill smears it

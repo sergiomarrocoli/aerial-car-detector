@@ -35,7 +35,9 @@ the building footprints remove. Labels and tile origins are saved in `labels/new
 ## Plan
 
 1. Run `yolocar` at 2x (`cardet/detect.py`), buildings masked, confidence around 0.1 to 0.2
-2. Fill the cars out of the imagery (next), judged by eye before and after on Newtown
+2. Fill the cars out of the imagery (`cardet/fill.py`, `python3 -m cardet.clean`): about 1,100 cars on Newtown in 20 s.
+   Before and after: `docs/before-after-centre.jpg`, `docs/before-after-station.jpg`. Cars it misses (dark ones,
+   some in shadow) stay; the fill is slightly soft and keeps most painted lines
 3. More labelled tiles from other areas only if the fill looks wrong where the detector misses
 4. Publish the settings (and weights, if we ever beat the download) for civil-war's pipeline to use
 
