@@ -13,6 +13,7 @@ MIN_CONF = 0.1
 SIZE_PX = (6, 40)            # a car box is 10-30 px; anything outside is a roof or a patch of ground
 MAX_ASPECT = 3.0
 NMS_IOU = 0.5
+EDGE_PX = 3                  # a box this close to a window side is a car cut in half by the window, not a whole car
 
 
 def yolo_predictor(weights, scale=SCALE, conf=MIN_CONF):
@@ -63,13 +64,24 @@ def plausible(b, size=SIZE_PX, max_aspect=MAX_ASPECT):
     return size[0] <= w <= size[1] and size[0] <= h <= size[1] and max(w, h) / min(w, h) <= max_aspect
 
 
+def _cut_by_window(x1, y1, x2, y2, x0, y0, tw, th, w, h, edge=EDGE_PX):
+    """True if the box touches a side of its window that is not the edge of the whole image: the overlap between windows
+    means another window sees that car whole, so this partial detection is dropped."""
+    return ((x1 < edge and x0 > 0) or (y1 < edge and y0 > 0)
+            or (x2 > tw - edge and x0 + tw < w) or (y2 > th - edge and y0 + th < h))
+
+
 def detect(rgb, predict, buildings=None, window=WINDOW_PX, overlap=OVERLAP_PX):
     """Detect cars in an HxWx3 uint8 image. `buildings` (optional mask) drops boxes centred on a building."""
     h, w = rgb.shape[:2]
     found = []
     for y0 in window_origins(h, window, overlap):
         for x0 in window_origins(w, window, overlap):
-            for x1, y1, x2, y2, c in predict(np.ascontiguousarray(rgb[y0:y0 + window, x0:x0 + window])):
+            tile = np.ascontiguousarray(rgb[y0:y0 + window, x0:x0 + window])
+            th, tw = tile.shape[:2]
+            for x1, y1, x2, y2, c in predict(tile):
+                if _cut_by_window(x1, y1, x2, y2, x0, y0, tw, th, w, h):
+                    continue
                 found.append(tuple(float(v) for v in (x1 + x0, y1 + y0, x2 + x0, y2 + y0, c)))
     boxes = []
     for b in nms([b for b in found if plausible(b)]):

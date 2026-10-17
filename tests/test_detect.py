@@ -127,3 +127,23 @@ def test_pick_tiles_can_be_skipped_past_the_ones_already_taken():
     from cardet.prepare import pick_tiles
     boxes = [{"cx": 10, "cy": 10}] * 3 + [{"cx": 300, "cy": 10}] * 2 + [{"cx": 600, "cy": 10}]
     assert pick_tiles(boxes, 768, 256, 256, 3)[1:] == [(256, 0), (512, 0)]
+
+
+def test_a_car_cut_in_half_by_a_window_edge_is_dropped_but_one_at_the_image_edge_is_kept():
+    rgb = np.zeros((1000, 1000, 3), np.uint8)
+    starts = window_origins(1000)                                           # [0, 232] on each axis
+    origins = iter([(x, y) for y in starts for x in starts])
+
+    def predict(window):
+        x, y = next(origins)
+        if (x, y) == (0, 0):
+            return [(759, 100, 768, 120, 0.9),                              # half a car, touching the first window's right side
+                    (0, 300, 20, 320, 0.8)]                                 # on the image's own left edge: a real edge, kept
+        if (x, y) == (232, 0):
+            return [(527, 100, 548, 120, 0.7)]                              # the same car whole: image x 759..780
+        return []
+
+    boxes = sorted(detect(rgb, predict), key=lambda b: b["cx"])
+    assert len(boxes) == 2
+    assert abs(boxes[0]["cx"] - 10) < 0.01 and boxes[0]["conf"] == 0.8
+    assert abs(boxes[1]["cx"] - 769.5) < 0.01 and boxes[1]["conf"] == 0.7   # the whole car, not the 0.9 fragment
