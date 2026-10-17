@@ -147,3 +147,13 @@ def test_a_car_cut_in_half_by_a_window_edge_is_dropped_but_one_at_the_image_edge
     assert len(boxes) == 2
     assert abs(boxes[0]["cx"] - 10) < 0.01 and boxes[0]["conf"] == 0.8
     assert abs(boxes[1]["cx"] - 769.5) < 0.01 and boxes[1]["conf"] == 0.7   # the whole car, not the 0.9 fragment
+
+
+def test_rotated_labels_land_on_the_same_car_in_the_rotated_image():
+    from PIL import Image
+    from cardet.dataset import rotate_centres
+    im = Image.new("L", (100, 100), 0)
+    im.putpixel((20, 70), 255)                                              # a marked pixel at (x=20, y=70)
+    turned = im.transpose(Image.ROTATE_90)
+    (x, y), = rotate_centres([(20.5, 70.5)], 100)                           # centres are continuous: pixel (20, 70) is at (20.5, 70.5)
+    assert turned.getpixel((int(x), int(y))) == 255
