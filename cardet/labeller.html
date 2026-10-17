@@ -37,7 +37,7 @@
 </header>
 <div id="help">
   <span class="swatch" style="border-color:var(--auto)"></span> found by the detector (yellow = weak, red = confident), <span class="swatch" style="border-color:var(--manual)"></span> added by you.
-  <b>Click a box</b> to delete it (wrong box). <b>Click empty ground</b> to add a missed car. <b>Drag from one end of a car to the other</b> to add it with the right direction.
+  <b>Click a box</b> to delete it (wrong box). <b>Click empty ground</b> to add a missed car. <b>Drag from one end of a car to the other</b> to add it with the right direction; <b>buses and lorries: drag their whole length</b>, the size is kept.
   Label <b>every</b> car in a tile you mark done, parked, dark or half in shadow; skip vans bigger than a car only if you like, but be consistent. [ and ] change tile. D marks the tile done and opens the next unfinished one.
 </div>
 <div id="scroller"><canvas id="canvas"></canvas></div>
@@ -197,7 +197,7 @@ canvas.addEventListener('mouseup', (e) => {
   if (!drag) return;
   const d = drag; drag = null;
   if (d.moved) {
-    const len = Math.min(40, Math.max(10, Math.hypot(d.x1 - d.x0, d.y1 - d.y0)));
+    const len = Math.min(80, Math.max(10, Math.hypot(d.x1 - d.x0, d.y1 - d.y0)));      // buses and lorries are up to ~60 px
     lastAngle = mod180(Math.atan2(d.y1 - d.y0, d.x1 - d.x0) * 180 / Math.PI);
     edit(() => state.boxes.push({ cx: (d.x0 + d.x1) / 2, cy: (d.y0 + d.y1) / 2, l: len, w: len * 0.42, a: lastAngle, src: 'manual' }));
   } else {

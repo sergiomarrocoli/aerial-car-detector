@@ -115,6 +115,15 @@ data crashed at epoch 4 on the Apple GPU (about 4 min per epoch) and was dropped
 Weights are not committed: `data/`, `runs/` and `*.pt` are ignored. Fetch `yolocar` with
 `curl -L -o data/models/yolocar-11n.pt https://huggingface.co/wuhp/yolocar/resolve/main/car-75e-11n.pt`.
 
+## More places
+
+`cardet/fetch_area.py` fetches a 1 km box of Esri imagery and OpenStreetMap buildings for named places (Bristol, Cardiff,
+Manchester, Edinburgh, Swindon, Leeds, Brighton, Aberystwyth so far; add a line to try another) and writes a small bundle
+that `cardet.prepare` cuts into tiles, pre-labelled by the current best weights. Where the model fails: per-tile
+scores on the held-out set showed dense city streets with buses and shadows (Bath `b03` F1 0.59, Shrewsbury `e03` 0.72)
+are much worse than Newtown (0.83 to 0.87), so new tiles lean towards those. Vehicles over 28 px (buses, lorries) now keep
+their real size in training instead of the fixed 20 px box, and the detector keeps boxes up to 75 px.
+
 ## Hand-labelling tiles
 
 ```

@@ -10,22 +10,22 @@ import numpy as np
 WINDOW_PX, OVERLAP_PX = 768, 64
 SCALE = 2                    # cars are ~18 px at 0.25 m/px; detectors do much better at ~36 px
 MIN_CONF = 0.1
-SIZE_PX = (6, 40)            # a car box is 10-30 px; anything outside is a roof or a patch of ground
-MAX_ASPECT = 3.0
+SIZE_PX = (6, 75)            # a car box is 10-30 px, a bus up to ~60; much bigger is a roof or a patch of ground
+MAX_ASPECT = 3.5
 NMS_IOU = 0.5
 EDGE_PX = 3                  # a box this close to a window side is a car cut in half by the window, not a whole car
 
 
-def yolo_predictor(weights, scale=SCALE, conf=MIN_CONF):
+def yolo_predictor(weights, scale=SCALE, conf=MIN_CONF, augment=False, iou=NMS_IOU):
     from PIL import Image
     from ultralytics import YOLO
     model = YOLO(str(weights))
 
     def predict(window):
         h, w = window.shape[:2]
-        size = (w * scale, h * scale)
+        size = (int(round(w * scale)), int(round(h * scale)))
         big = Image.fromarray(window).resize(size, Image.LANCZOS)
-        r = model.predict(big, imgsz=max(size) // 32 * 32, conf=conf, iou=NMS_IOU, verbose=False)[0]
+        r = model.predict(big, imgsz=max(size) // 32 * 32, conf=conf, iou=iou, augment=augment, verbose=False)[0]
         xyxy, c = r.boxes.xyxy.cpu().numpy() / scale, r.boxes.conf.cpu().numpy()
         return [(*b, s) for b, s in zip(xyxy, c)]
     return predict

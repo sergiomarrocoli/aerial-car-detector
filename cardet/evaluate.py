@@ -36,9 +36,9 @@ def curve(results, n_truth, thresholds=(0.1, 0.2, 0.3, 0.4, 0.5)):
     return rows
 
 
-def evaluate(weights, tiles, conf=0.05, scale=SCALE):
+def evaluate(weights, tiles, conf=0.05, scale=SCALE, augment=False, iou=0.5):
     """tiles: [(image path, [(cx, cy)], building mask or None)] in original pixels. Returns the curve over all tiles together."""
-    predict = yolo_predictor(weights, scale=scale, conf=conf)
+    predict = yolo_predictor(weights, scale=scale, conf=conf, augment=augment, iou=iou)
     results, n_truth = [], 0
     for image, centres, buildings in tiles:
         boxes = detect(np.asarray(Image.open(image).convert("RGB")), predict, buildings)

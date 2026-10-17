@@ -157,3 +157,24 @@ def test_rotated_labels_land_on_the_same_car_in_the_rotated_image():
     turned = im.transpose(Image.ROTATE_90)
     (x, y), = rotate_centres([(20.5, 70.5)], 100)                           # centres are continuous: pixel (20, 70) is at (20.5, 70.5)
     assert turned.getpixel((int(x), int(y))) == 255
+
+
+def test_cars_get_the_fixed_box_and_buses_keep_their_real_size():
+    from cardet.dataset import box_size
+    assert box_size({"cx": 0, "cy": 0, "l": 18, "w": 8, "a": 30}) == (20, 20)
+    w, h = box_size({"cx": 0, "cy": 0, "l": 50, "w": 20, "a": 0})
+    assert (w, h) == (50, 20)
+    w, h = box_size({"cx": 0, "cy": 0, "l": 50, "w": 20, "a": 90})           # the same bus turned: tall, not wide
+    assert abs(w - 20) < 1e-6 and abs(h - 50) < 1e-6
+
+
+def test_large_boxes_turn_with_the_tile():
+    from cardet.dataset import yolo_lines
+    (line,) = yolo_lines([(100, 200)], 768, sizes=[(50, 20)])
+    assert abs(float(line.split()[3]) - 50 / 768) < 1e-4 and abs(float(line.split()[4]) - 20 / 768) < 1e-4
+
+
+def test_detect_keeps_bus_sized_boxes_but_not_roofs():
+    from cardet.detect import plausible
+    assert plausible((0, 0, 55, 20, 0.9))
+    assert not plausible((0, 0, 120, 90, 0.9))
