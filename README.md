@@ -106,7 +106,10 @@ data crashed at epoch 4 on the Apple GPU (about 4 min per epoch) and was dropped
 1. Run the detector at 2x (`cardet/detect.py`), buildings masked, confidence about 0.2 to 0.3 with the fine-tuned weights
 2. Fill the cars out of the imagery (`cardet/fill.py`, `python3 -m cardet.clean`); before and after for the downloaded
    model: `docs/before-after-centre.jpg`, `docs/before-after-station.jpg`
-3. Re-clean Newtown with the fine-tuned weights and compare
+3. Re-clean Newtown with the fine-tuned weights and compare (done, confidence 0.25): 1,552 cars painted out against 1,075
+   with the downloaded model, and the leftover dark and shadowed cars in the car parks and the station road are gone.
+   `docs/compare-centre.jpg`, `docs/compare-station.jpg`: original, downloaded model, fine-tuned (left to right). Soft
+   dark patches remain where shadows were filled, and some rail wagons are still partly removed
 4. Decide how civil-war uses it (pipeline stage vs a one-off step) and publish the weights as a release
 
 Weights are not committed: `data/`, `runs/` and `*.pt` are ignored. Fetch `yolocar` with
