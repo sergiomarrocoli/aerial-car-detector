@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 .venv/
 *.pt
+cloud/car-data.zip

@@ -13,7 +13,7 @@ from PIL import Image
 BOX_PX = 20     # original pixels (a 4.5 m car is ~18 px long at 0.25 m/px)
 LARGE_PX = 28   # a labelled vehicle longer than this (a bus, a lorry) keeps its real size instead of the fixed box
 SCALE = 2
-VAL_TILES = ("t03", "t08", "b03", "b06", "e03", "w01")   # two Newtown, two Bath, one Shrewsbury, one Porthmadog
+VAL_TILES = ("t03", "t08", "b03", "b06", "e03", "w01", "r02", "c02", "m01", "d02", "s02", "l02", "g02", "a02")   # original six, plus one tile from each of the eight newer cities
 
 
 def load_tiles(folder):
