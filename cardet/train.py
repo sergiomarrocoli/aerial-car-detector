@@ -1,7 +1,10 @@
 """Fine-tune a detector on the dataset from `cardet.dataset`.
 
 python3 -m cardet.train data/yolo data/models/yolocar-11n.pt [name=gentle] [epochs=30] [freeze=10] [lr0=0.0003] ...
-Extra key=value arguments override the defaults below and go straight to Ultralytics.
+python3 -m cardet.train resume runs/detect/runs/<name>/weights/last.pt
+Extra key=value arguments override the defaults below and go straight to Ultralytics. `resume` carries on an
+interrupted run; on Apple GPUs (device=mps) Ultralytics sometimes crashes with a shape-mismatch error in its label
+assigner, so long runs are wrapped in a retry loop that resumes.
 """
 import sys
 
@@ -28,5 +31,8 @@ def parse(extra):
 
 
 if __name__ == "__main__":
+    if sys.argv[1] == "resume":
+        YOLO(sys.argv[2]).train(resume=True)
+        sys.exit()
     data, base = sys.argv[1], sys.argv[2]
     YOLO(base).train(data=f"{data}/data.yaml", **{**DEFAULTS, **parse(sys.argv[3:])})
