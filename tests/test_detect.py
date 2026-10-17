@@ -55,3 +55,26 @@ def test_boxes_from_numpy_models_serialise_to_json():
     rgb = np.zeros((300, 300, 3), np.uint8)
     boxes = detect(rgb, lambda w: [tuple(np.float32(v) for v in car(50, 50))])
     json.dumps(boxes)
+
+
+def test_dataset_lines_are_fixed_boxes_on_the_centres_in_enlarged_tile_units():
+    from cardet.dataset import yolo_lines
+    (line,) = yolo_lines([(384, 192)], size=768)
+    cls, cx, cy, w, h = line.split()
+    assert cls == "0" and float(cx) == 0.5 and float(cy) == 0.25
+    assert abs(float(w) - 20 / 768) < 1e-4
+
+
+def test_dataset_clips_boxes_at_the_tile_edge_and_skips_slivers():
+    from cardet.dataset import yolo_lines
+    assert len(yolo_lines([(0, 100), (-9, 100)], size=768)) == 1
+
+
+def test_matching_pairs_each_car_once_and_scores_precision_and_recall():
+    from cardet.evaluate import curve, match
+    truth = [(100, 100), (200, 200), (300, 300)]
+    dets = [(101, 101, 0.9), (102, 99, 0.6), (200, 203, 0.8), (500, 500, 0.7)]   # one duplicate, one false
+    results = match(dets, truth)
+    assert sorted(tp for _, tp in results) == [False, False, True, True]
+    ((t, p, r, f1),) = curve(results, len(truth), thresholds=(0.5,))
+    assert abs(p - 0.5) < 1e-9 and abs(r - 2 / 3) < 1e-9

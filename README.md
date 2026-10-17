@@ -18,14 +18,28 @@ Cars are ~18 x 7 px in our 25 cm imagery. On a Newtown crop with ~150 cars:
 COWC (the usual aerial car dataset) was checked and set aside: its downloads are classification patches or one point
 per car, not boxes.
 
+## Fine-tuning result (8 Newtown tiles labelled by hand, 679 cars; t03 and t08 held out, 136 cars)
+
+Scored by matching each detection to a labelled car within 2 m, buildings masked (`python3 -m cardet.score`):
+
+| Weights | Best F1 | Precision / recall at that point |
+|---|---|---|
+| `yolocar` as downloaded, conf 0.1 | **0.80** | 0.83 / 0.78 |
+| fine-tuned, lr 0.002, 60 epochs | 0.75 | 0.76 / 0.75 (conf 0.2) |
+| fine-tuned gently (backbone frozen, lr 0.0003, 30 epochs) | 0.77 | 0.77 / 0.77 (conf 0.4) |
+
+Six training tiles were not enough to beat the downloaded model, and the held-out set is small (about +-0.04). The labels
+also began from `yolocar`'s own boxes, which flatters it. Most false detections are skylights and roof features, which
+the building footprints remove. Labels and tile origins are saved in `labels/newtown/`.
+
 ## Plan
 
-1. Run `yolocar` at 2x over the imagery (`cardet/detect.py`), at confidence 0.1: easier to delete false boxes than to add misses
-2. Correct a few Newtown tiles in the labelling page (below)
-3. Fine-tune `yolocar` on the corrected tiles, holding one tile out; compare against the 0.2-confidence baseline
-4. Publish the weights as a GitHub release; civil-war's pipeline downloads them and paints the cars out
+1. Run `yolocar` at 2x (`cardet/detect.py`), buildings masked, confidence around 0.1 to 0.2
+2. Fill the cars out of the imagery (next), judged by eye before and after on Newtown
+3. More labelled tiles from other areas only if the fill looks wrong where the detector misses
+4. Publish the settings (and weights, if we ever beat the download) for civil-war's pipeline to use
 
-Weights are not committed: `data/` is ignored. Fetch `yolocar` with
+Weights are not committed: `data/` and `runs/` are ignored. Fetch `yolocar` with
 `curl -L -o data/models/yolocar-11n.pt https://huggingface.co/wuhp/yolocar/resolve/main/car-75e-11n.pt`.
 
 ## Hand-labelling Newtown tiles (the test set)
