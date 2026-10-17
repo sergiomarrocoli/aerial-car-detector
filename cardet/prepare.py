@@ -44,7 +44,9 @@ def pick_tiles(boxes, width, height, size, count, surface=None):
 CONFIDENT_CONF = 0.3  # for ranking tiles by detector boxes
 
 
-def prepare(bundle, out, size=768, count=8, weights=None):
+def prepare(bundle, out, size=768, count=8, weights=None, skip=0, prefix="t"):
+    """Cut `count` tiles after skipping the `skip` best (already labelled). Names are prefix + number from skip + 1, and
+    tiles already listed in `out/tiles.json` under other names are kept, so a second run adds to the labelling set."""
     import numpy as np
     bundle, out = Path(bundle), Path(out)
     meta = json.loads((bundle / "meta.json").read_text())
@@ -64,13 +66,15 @@ def prepare(bundle, out, size=768, count=8, weights=None):
 
     (out / "tiles").mkdir(parents=True, exist_ok=True)
     tiles = []
-    for n, (x0, y0) in enumerate(pick_tiles(boxes, w, h, size, count, surface), 1):
-        name = f"t{n:02d}"
+    for n, (x0, y0) in enumerate(pick_tiles(boxes, w, h, size, skip + count, surface)[skip:], skip + 1):
+        name = f"{prefix}{n:02d}"
         image.crop((x0, y0, x0 + size, y0 + size)).save(out / "tiles" / f"{name}.jpg", quality=95)
         inside = [{**b, "cx": b["cx"] - x0, "cy": b["cy"] - y0, "src": "auto"} for b in boxes
                   if x0 <= b["cx"] < x0 + size and y0 <= b["cy"] < y0 + size]
-        tiles.append({"name": name, "x0": x0, "y0": y0, "size": size, "candidates": inside})
-    (out / "tiles.json").write_text(json.dumps({"px_per_m": px_per_m, "tiles": tiles}))
+        tiles.append({"name": name, "bundle": str(bundle.resolve()), "x0": x0, "y0": y0, "size": size, "candidates": inside})
+    listed = out / "tiles.json"
+    kept = [t for t in json.loads(listed.read_text())["tiles"] if t["name"] not in {n["name"] for n in tiles}] if listed.exists() else []
+    listed.write_text(json.dumps({"px_per_m": px_per_m, "tiles": kept + tiles}))
     return tiles
 
 
@@ -80,7 +84,9 @@ if __name__ == "__main__":
     ap.add_argument("--out", required=True)
     ap.add_argument("--size", type=int, default=768)
     ap.add_argument("--count", type=int, default=8)
+    ap.add_argument("--skip", type=int, default=0, help="skip this many best-ranked tiles (ones already labelled)")
+    ap.add_argument("--prefix", default="t", help="tile name prefix; use a new one for each area")
     ap.add_argument("--weights", help="Ultralytics weights for the detector; omit to use the blob finder")
     a = ap.parse_args()
-    for t in prepare(a.bundle, a.out, a.size, a.count, a.weights):
+    for t in prepare(a.bundle, a.out, a.size, a.count, a.weights, a.skip, a.prefix):
         print(f"{t['name']}: {len(t['candidates'])} boxes at ({t['x0']}, {t['y0']})")

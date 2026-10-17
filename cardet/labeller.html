@@ -27,6 +27,7 @@
 <header>
   <div class="tabs" id="tabs"></div>
   <span id="count"></span>
+  <span id="total" style="color: var(--muted)"></span>
   <span>Zoom <button data-zoom="-1">−</button> <button data-zoom="1">+</button></span>
   <button id="undo">Undo (Z)</button>
   <button id="hide">Hide boxes (H)</button>
@@ -37,7 +38,7 @@
 <div id="help">
   <span class="swatch" style="border-color:var(--auto)"></span> found by the detector (yellow = weak, red = confident), <span class="swatch" style="border-color:var(--manual)"></span> added by you.
   <b>Click a box</b> to delete it (wrong box). <b>Click empty ground</b> to add a missed car. <b>Drag from one end of a car to the other</b> to add it with the right direction.
-  Label <b>every</b> car in a tile you mark done, parked, dark or half in shadow; skip vans bigger than a car only if you like, but be consistent. [ and ] change tile.
+  Label <b>every</b> car in a tile you mark done, parked, dark or half in shadow; skip vans bigger than a car only if you like, but be consistent. [ and ] change tile. D marks the tile done and opens the next unfinished one.
 </div>
 <div id="scroller"><canvas id="canvas"></canvas></div>
 <script>
@@ -60,6 +61,7 @@ async function load() {
 }
 
 function show(i) {
+  flush();
   current = i;
   state = tiles[i].state;
   undoStack = [];
@@ -87,6 +89,8 @@ function renderChrome() {
   $('done').classList.toggle('on', state.done);
   $('done').textContent = state.done ? 'Tile done ✓ (D)' : 'Mark tile done (D)';
   $('hide').classList.toggle('on', hidden);
+  const doneTiles = tiles.filter((t) => t.state.done);
+  $('total').textContent = `· ${doneTiles.length}/${tiles.length} tiles done, ${doneTiles.reduce((n, t) => n + t.state.boxes.length, 0)} cars`;
   const n = state.boxes.filter(weak).length;
   $('drop').textContent = `Drop ${n} weak`;
   $('drop').disabled = !n;
@@ -145,15 +149,21 @@ function draw() {
   }
 }
 
+let pendingTile = null;
 function changed() {
   renderChrome(); draw();
   $('status').textContent = 'saving…';
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(save, 250);
+  pendingTile = tiles[current];
+  saveTimer = setTimeout(flush, 250);
 }
 
-async function save() {
-  const t = tiles[current];
+function flush() {                          // save the tile that changed, even if we have moved on since
+  clearTimeout(saveTimer);
+  if (pendingTile) { const t = pendingTile; pendingTile = null; save(t); }
+}
+
+async function save(t) {
   const res = await fetch(`/labels/${t.name}`, { method: 'POST', body: JSON.stringify(t.state) });
   $('status').textContent = res.ok ? 'saved' : 'SAVE FAILED';
 }
@@ -207,7 +217,21 @@ function undo() {
   changed();
 }
 function dropWeak() { edit(() => { state.boxes = state.boxes.filter((b) => !weak(b)); }); }
-function toggleDone() { state.done = !state.done; changed(); }
+function nextUndone(after) {
+  for (let k = 1; k <= tiles.length; k++) {
+    const i = (after + k) % tiles.length;
+    if (!tiles[i].state.done) return i;
+  }
+  return -1;
+}
+function toggleDone() {
+  state.done = !state.done;
+  changed();
+  if (state.done) {                       // save this tile, then carry on with the next unfinished one
+    const next = nextUndone(current);
+    if (next >= 0) show(next);
+  }
+}
 function toggleHide() { hidden = !hidden; renderChrome(); draw(); }
 function zoom(d) {
   scale = Math.min(4, Math.max(1, scale + d * 0.5));

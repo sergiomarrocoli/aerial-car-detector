@@ -121,3 +121,9 @@ def test_tight_fill_keeps_a_painted_line_just_outside_the_box():
     assert tight[30:38, 55:75].mean() < 120                                 # car gone
     assert tight[48, 60:70].mean() > 200                                    # line intact
     assert loose[48, 60:70].mean() < 200                                    # the whole-box fill smears it
+
+
+def test_pick_tiles_can_be_skipped_past_the_ones_already_taken():
+    from cardet.prepare import pick_tiles
+    boxes = [{"cx": 10, "cy": 10}] * 3 + [{"cx": 300, "cy": 10}] * 2 + [{"cx": 600, "cy": 10}]
+    assert pick_tiles(boxes, 768, 256, 256, 3)[1:] == [(256, 0), (512, 0)]
