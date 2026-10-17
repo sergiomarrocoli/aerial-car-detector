@@ -1,9 +1,12 @@
-"""Cut a bundle's imagery into tiles for hand-labelling cars, with the blob detector's boxes pre-drawn.
+"""Cut a bundle's imagery into tiles for hand-labelling cars, with a detector's boxes pre-drawn.
 
 The tiles with the most candidate cars are picked (no two overlapping), so the labelling time goes on cars.
 
-Usage: python3 -m cardet.prepare data/bundles/area_newtown --out data/cars/newtown
-Then:  python3 -m cardet.labeller data/cars/newtown
+Usage: python3 -m cardet.prepare data/bundles/area_newtown --out data/newtown --weights data/models/yolocar-11n.pt
+Then:  python3 -m cardet.labeller data/newtown
+
+With --weights the boxes come from that detector (at confidence 0.1, so false boxes are easier to delete than missed
+cars are to add); without it they come from the model-free blob finder.
 """
 import argparse
 import json
@@ -11,6 +14,7 @@ from pathlib import Path
 
 from PIL import Image
 
+from .detect import detect, yolo_predictor
 from .blobs import building_mask, find_candidates, grey_surface
 
 Image.MAX_IMAGE_PIXELS = None
@@ -37,7 +41,10 @@ def pick_tiles(boxes, width, height, size, count, surface=None):
     return [(c * size, r * size) for c, r in best]
 
 
-def prepare(bundle, out, size=768, count=8):
+CONFIDENT_CONF = 0.3  # for ranking tiles by detector boxes
+
+
+def prepare(bundle, out, size=768, count=8, weights=None):
     import numpy as np
     bundle, out = Path(bundle), Path(out)
     meta = json.loads((bundle / "meta.json").read_text())
@@ -47,7 +54,12 @@ def prepare(bundle, out, size=768, count=8):
     px_per_m = w / meta["size_m"][0]
     features = json.loads((bundle / "buildings.geojson").read_text())["features"]
     buildings = building_mask(features, (h, w), px_per_m)
-    boxes = find_candidates(rgb, buildings)
+    if weights:
+        boxes = detect(rgb, yolo_predictor(weights), buildings)
+        for b in boxes:                              # rank tiles on the confident ones, like the blob contrast
+            b["contrast"] = CONFIDENT_CONTRAST if b["conf"] >= CONFIDENT_CONF else 0
+    else:
+        boxes = find_candidates(rgb, buildings)
     surface = grey_surface(rgb) & (buildings == 0)
 
     (out / "tiles").mkdir(parents=True, exist_ok=True)
@@ -68,6 +80,7 @@ if __name__ == "__main__":
     ap.add_argument("--out", required=True)
     ap.add_argument("--size", type=int, default=768)
     ap.add_argument("--count", type=int, default=8)
+    ap.add_argument("--weights", help="Ultralytics weights for the detector; omit to use the blob finder")
     a = ap.parse_args()
-    for t in prepare(a.bundle, a.out, a.size, a.count):
+    for t in prepare(a.bundle, a.out, a.size, a.count, a.weights):
         print(f"{t['name']}: {len(t['candidates'])} boxes at ({t['x0']}, {t['y0']})")

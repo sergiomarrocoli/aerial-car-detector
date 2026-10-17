@@ -2,4 +2,5 @@ numpy
 pillow
 opencv-python-headless
 ultralytics
+transformers
 pytest

@@ -19,6 +19,7 @@
   #help b { color: var(--text); }
   #scroller { flex: 1; overflow: auto; }
   canvas { display: block; cursor: crosshair; }
+  #cut { width: 4.5em; background: #2c3036; color: var(--text); border: 1px solid #444a52; border-radius: 6px; padding: 3px 6px; font: inherit; }
   .swatch { display: inline-block; width: 10px; height: 10px; border: 2px solid; border-radius: 2px; vertical-align: -1px; }
 </style>
 </head>
@@ -29,11 +30,12 @@
   <span>Zoom <button data-zoom="-1">−</button> <button data-zoom="1">+</button></span>
   <button id="undo">Undo (Z)</button>
   <button id="hide">Hide boxes (H)</button>
+  <span>Weak boxes under <input id="cut" type="number" min="0" max="1" step="0.05" value="0.2"> (dashed) <button id="drop">Drop them</button></span>
   <button id="done">Mark tile done (D)</button>
   <span id="status">loading…</span>
 </header>
 <div id="help">
-  <span class="swatch" style="border-color:var(--auto)"></span> found by the detector, <span class="swatch" style="border-color:var(--manual)"></span> added by you.
+  <span class="swatch" style="border-color:var(--auto)"></span> found by the detector (yellow = weak, red = confident), <span class="swatch" style="border-color:var(--manual)"></span> added by you.
   <b>Click a box</b> to delete it (wrong box). <b>Click empty ground</b> to add a missed car. <b>Drag from one end of a car to the other</b> to add it with the right direction.
   Label <b>every</b> car in a tile you mark done, parked, dark or half in shadow; skip vans bigger than a car only if you like, but be consistent. [ and ] change tile.
 </div>
@@ -85,7 +87,19 @@ function renderChrome() {
   $('done').classList.toggle('on', state.done);
   $('done').textContent = state.done ? 'Tile done ✓ (D)' : 'Mark tile done (D)';
   $('hide').classList.toggle('on', hidden);
+  const n = state.boxes.filter(weak).length;
+  $('drop').textContent = `Drop ${n} weak`;
+  $('drop').disabled = !n;
 }
+
+// detector boxes carry a confidence: yellow when weak, red when sure. Blob and hand-made boxes have none.
+function colour(b) {
+  if (b.src === 'manual') return '#3dff7a';
+  if (b.conf === undefined) return '#ff4d4d';
+  return `hsl(${Math.round(55 * (1 - Math.min(1, b.conf / 0.5)))}, 100%, 55%)`;
+}
+const cutoff = () => parseFloat($('cut').value) || 0;
+const weak = (b) => b.src !== 'manual' && b.conf !== undefined && b.conf < cutoff();
 
 function corners(b, pad = 0) {
   const a = b.a * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), hl = b.l / 2 + pad, hw = b.w / 2 + pad;
@@ -119,8 +133,10 @@ function draw() {
       p.forEach(([x, y], k) => (k ? ctx.lineTo(x * scale, y * scale) : ctx.moveTo(x * scale, y * scale)));
       ctx.closePath();
       ctx.lineWidth = i === hover ? 3 : 1.5;
-      ctx.strokeStyle = i === hover ? '#ffd24d' : b.src === 'manual' ? '#3dff7a' : '#ff4d4d';
+      ctx.setLineDash(weak(b) ? [4, 3] : []);
+      ctx.strokeStyle = i === hover ? '#ffffff' : colour(b);
       ctx.stroke();
+      ctx.setLineDash([]);
     });
   }
   if (drag && drag.moved) {
@@ -190,6 +206,7 @@ function undo() {
   tiles[current].state = state;
   changed();
 }
+function dropWeak() { edit(() => { state.boxes = state.boxes.filter((b) => !weak(b)); }); }
 function toggleDone() { state.done = !state.done; changed(); }
 function toggleHide() { hidden = !hidden; renderChrome(); draw(); }
 function zoom(d) {
@@ -197,6 +214,8 @@ function zoom(d) {
   if (image) { resize(); draw(); }
 }
 
+$('cut').oninput = () => { renderChrome(); draw(); };
+$('drop').onclick = dropWeak;
 $('undo').onclick = undo; $('done').onclick = toggleDone; $('hide').onclick = toggleHide;
 document.querySelectorAll('[data-zoom]').forEach((b) => (b.onclick = () => zoom(+b.dataset.zoom)));
 window.addEventListener('keydown', (e) => {
