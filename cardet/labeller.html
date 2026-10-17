@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Label cars</title>
+<style>
+  :root { --bg: #14161a; --panel: #1e2126; --text: #e8eaed; --muted: #9aa0a6; --auto: #ff4d4d; --manual: #3dff7a; --hot: #ffd24d; }
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; display: flex; flex-direction: column; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 12px; background: var(--panel); }
+  button { background: #2c3036; color: var(--text); border: 1px solid #444a52; border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; }
+  button:hover { background: #383d44; }
+  button.on { border-color: var(--manual); }
+  .tabs { display: flex; gap: 4px; }
+  .tabs button.done::after { content: " ✓"; color: var(--manual); }
+  .tabs button.current { background: #3b4a63; }
+  #status { color: var(--muted); margin-left: auto; }
+  #help { color: var(--muted); padding: 4px 12px; background: var(--panel); border-top: 1px solid #2c3036; font-size: 13px; }
+  #help b { color: var(--text); }
+  #scroller { flex: 1; overflow: auto; }
+  canvas { display: block; cursor: crosshair; }
+  .swatch { display: inline-block; width: 10px; height: 10px; border: 2px solid; border-radius: 2px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="tabs" id="tabs"></div>
+  <span id="count"></span>
+  <span>Zoom <button data-zoom="-1">−</button> <button data-zoom="1">+</button></span>
+  <button id="undo">Undo (Z)</button>
+  <button id="hide">Hide boxes (H)</button>
+  <button id="done">Mark tile done (D)</button>
+  <span id="status">loading…</span>
+</header>
+<div id="help">
+  <span class="swatch" style="border-color:var(--auto)"></span> found by the detector, <span class="swatch" style="border-color:var(--manual)"></span> added by you.
+  <b>Click a box</b> to delete it (wrong box). <b>Click empty ground</b> to add a missed car. <b>Drag from one end of a car to the other</b> to add it with the right direction.
+  Label <b>every</b> car in a tile you mark done, parked, dark or half in shadow; skip vans bigger than a car only if you like, but be consistent. [ and ] change tile.
+</div>
+<div id="scroller"><canvas id="canvas"></canvas></div>
+<script>
+const CAR_LENGTH = 18, CAR_WIDTH = 7.5;       // default box in px (a car is ~4.5 x 1.9 m at 0.25 m/px)
+const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+const $ = (id) => document.getElementById(id);
+let tiles = [], current = 0, image = null, scale = 2, hidden = false;
+let state = null;                              // {boxes, done} of the current tile
+let undoStack = [], lastAngle = 0, drag = null, hover = -1, saveTimer = null;
+
+const mod180 = (a) => ((a % 180) + 180) % 180;
+
+async function load() {
+  const data = await (await fetch('/tiles.json')).json();
+  tiles = data.tiles.map((t) => ({
+    ...t, state: t.saved || { boxes: t.candidates, done: false },
+  }));
+  const first = tiles.findIndex((t) => !t.state.done);
+  show(first < 0 ? 0 : first);
+}
+
+function show(i) {
+  current = i;
+  state = tiles[i].state;
+  undoStack = [];
+  image = new Image();
+  image.onload = () => { resize(); draw(); };
+  image.src = `/tiles/${tiles[i].name}.jpg`;
+  renderChrome();
+}
+
+function resize() {
+  canvas.width = image.width * scale; canvas.height = image.height * scale;
+}
+
+function renderChrome() {
+  $('tabs').innerHTML = '';
+  tiles.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.textContent = t.name;
+    b.className = (t.state.done ? 'done ' : '') + (i === current ? 'current' : '');
+    b.onclick = () => show(i);
+    $('tabs').appendChild(b);
+  });
+  const manual = state.boxes.filter((b) => b.src === 'manual').length;
+  $('count').textContent = `${state.boxes.length} cars (${manual} added)`;
+  $('done').classList.toggle('on', state.done);
+  $('done').textContent = state.done ? 'Tile done ✓ (D)' : 'Mark tile done (D)';
+  $('hide').classList.toggle('on', hidden);
+}
+
+function corners(b, pad = 0) {
+  const a = b.a * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), hl = b.l / 2 + pad, hw = b.w / 2 + pad;
+  return [[-hl, -hw], [hl, -hw], [hl, hw], [-hl, hw]].map(([x, y]) => [b.cx + x * c - y * s, b.cy + x * s + y * c]);
+}
+
+function contains(b, x, y) {
+  const a = -b.a * Math.PI / 180, dx = x - b.cx, dy = y - b.cy;
+  const u = dx * Math.cos(a) - dy * Math.sin(a), v = dx * Math.sin(a) + dy * Math.cos(a);
+  return Math.abs(u) <= b.l / 2 + 3 && Math.abs(v) <= b.w / 2 + 3;
+}
+
+function hit(x, y) {
+  let best = -1, bestD = Infinity;
+  state.boxes.forEach((b, i) => {
+    if (!contains(b, x, y)) return;
+    const d = Math.hypot(b.cx - x, b.cy - y);
+    if (d < bestD) { best = i; bestD = d; }
+  });
+  return best;
+}
+
+function draw() {
+  if (!image) return;
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  if (!hidden) {
+    state.boxes.forEach((b, i) => {
+      const p = corners(b);
+      ctx.beginPath();
+      p.forEach(([x, y], k) => (k ? ctx.lineTo(x * scale, y * scale) : ctx.moveTo(x * scale, y * scale)));
+      ctx.closePath();
+      ctx.lineWidth = i === hover ? 3 : 1.5;
+      ctx.strokeStyle = i === hover ? '#ffd24d' : b.src === 'manual' ? '#3dff7a' : '#ff4d4d';
+      ctx.stroke();
+    });
+  }
+  if (drag && drag.moved) {
+    ctx.beginPath(); ctx.moveTo(drag.x0 * scale, drag.y0 * scale); ctx.lineTo(drag.x1 * scale, drag.y1 * scale);
+    ctx.strokeStyle = '#3dff7a'; ctx.lineWidth = 2; ctx.stroke();
+  }
+}
+
+function changed() {
+  renderChrome(); draw();
+  $('status').textContent = 'saving…';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 250);
+}
+
+async function save() {
+  const t = tiles[current];
+  const res = await fetch(`/labels/${t.name}`, { method: 'POST', body: JSON.stringify(t.state) });
+  $('status').textContent = res.ok ? 'saved' : 'SAVE FAILED';
+}
+
+function edit(fn) {
+  undoStack.push(JSON.stringify(state.boxes));
+  fn();
+  changed();
+}
+
+function at(e) {
+  const r = canvas.getBoundingClientRect();
+  return [(e.clientX - r.left) / scale, (e.clientY - r.top) / scale];
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  const [x, y] = at(e);
+  drag = { x0: x, y0: y, x1: x, y1: y, moved: false };
+});
+canvas.addEventListener('mousemove', (e) => {
+  const [x, y] = at(e);
+  if (drag) {
+    drag.x1 = x; drag.y1 = y;
+    drag.moved = drag.moved || Math.hypot(x - drag.x0, y - drag.y0) * scale > 6;
+  } else {
+    hover = hit(x, y);
+  }
+  draw();
+});
+canvas.addEventListener('mouseup', (e) => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.moved) {
+    const len = Math.min(40, Math.max(10, Math.hypot(d.x1 - d.x0, d.y1 - d.y0)));
+    lastAngle = mod180(Math.atan2(d.y1 - d.y0, d.x1 - d.x0) * 180 / Math.PI);
+    edit(() => state.boxes.push({ cx: (d.x0 + d.x1) / 2, cy: (d.y0 + d.y1) / 2, l: len, w: len * 0.42, a: lastAngle, src: 'manual' }));
+  } else {
+    const i = hit(d.x0, d.y0);
+    if (i >= 0) edit(() => state.boxes.splice(i, 1));
+    else edit(() => state.boxes.push({ cx: d.x0, cy: d.y0, l: CAR_LENGTH, w: CAR_WIDTH, a: lastAngle, src: 'manual' }));
+  }
+  hover = hit(...at(e));
+  draw();
+});
+canvas.addEventListener('mouseleave', () => { drag = null; hover = -1; draw(); });
+
+function undo() {
+  if (!undoStack.length) return;
+  state.boxes = JSON.parse(undoStack.pop());
+  tiles[current].state = state;
+  changed();
+}
+function toggleDone() { state.done = !state.done; changed(); }
+function toggleHide() { hidden = !hidden; renderChrome(); draw(); }
+function zoom(d) {
+  scale = Math.min(4, Math.max(1, scale + d * 0.5));
+  if (image) { resize(); draw(); }
+}
+
+$('undo').onclick = undo; $('done').onclick = toggleDone; $('hide').onclick = toggleHide;
+document.querySelectorAll('[data-zoom]').forEach((b) => (b.onclick = () => zoom(+b.dataset.zoom)));
+window.addEventListener('keydown', (e) => {
+  if (e.metaKey || e.ctrlKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'z') undo();
+  else if (k === 'd') toggleDone();
+  else if (k === 'h') toggleHide();
+  else if (k === '+' || k === '=') zoom(1);
+  else if (k === '-') zoom(-1);
+  else if (k === '[') show(Math.max(0, current - 1));
+  else if (k === ']') show(Math.min(tiles.length - 1, current + 1));
+});
+
+load().then(() => { $('status').textContent = 'ready'; });
+</script>
+</body>
+</html>
