@@ -4,3 +4,4 @@ opencv-python-headless
 ultralytics
 transformers
 pytest
+matplotlib
