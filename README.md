@@ -171,7 +171,7 @@ towns.
    with the downloaded model, and the leftover dark and shadowed cars in the car parks and the station road are gone.
    `docs/compare-centre.jpg`, `docs/compare-station.jpg`: original, downloaded model, fine-tuned (left to right). Soft
    dark patches remain where shadows were filled, and some rail wagons are still partly removed
-4. Publish the weights (done: release `v0.1.0`, also in `weights/`)
+4. Publish the weights (done: release `v0.1.0`, and inside the package since `v0.2.0`)
 
 The nano model ships inside the package: `cardet/models/aerial-car-nano.pt` (5.7 MB, the `n_lr1e3` run; also attached to
 release `v0.1.0`). Install the library and remove cars from an image with one call:
