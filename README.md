@@ -1,7 +1,7 @@
 # aerial-car-detector
 
-A small detector for **cars in 25 cm aerial photos**, trained to paint parked cars out of the imagery used by
-[civil-war](https://github.com/sergiomarrocoli/civil-war) (they otherwise end up flat on the road).
+A small detector for **cars in 25 cm aerial photos**, built to paint parked cars out of aerial imagery (otherwise they
+end up flat on the road when the photo is draped over 3D terrain).
 
 ![cars found by the nano model on a Norwich tile](docs/hero.jpg)
 
@@ -40,8 +40,8 @@ false ones were deleted.
 | Porthmadog (`w`) | 6 | 310 |
 
 Held out for testing: `t03 t08 b03 b06 e03 w01` (6 tiles, 527 cars, all four areas). The other 34 tiles (3,194 cars)
-train the model. Labels and tile origins are in `labels/newtown/`; the tile images are cut again from a civil-war
-bundle by `cardet.prepare`.
+train the model. Labels and tile origins are in `labels/newtown/`; the tile images are cut again from the source
+bundle (imagery, building footprints and a `meta.json`) by `cardet.prepare`.
 
 Every car is turned into a fixed 20 px square on its centre (`cardet/dataset.py`): the hand-made boxes are tight and
 angled, the detector's loose and upright, so only the centre is trusted. Tiles are enlarged 2x (1536 px) because
@@ -171,9 +171,11 @@ towns.
    with the downloaded model, and the leftover dark and shadowed cars in the car parks and the station road are gone.
    `docs/compare-centre.jpg`, `docs/compare-station.jpg`: original, downloaded model, fine-tuned (left to right). Soft
    dark patches remain where shadows were filled, and some rail wagons are still partly removed
-4. Decide how civil-war uses it (pipeline stage vs a one-off step) and publish the weights as a release
+4. Publish the weights (done: release `v0.1.0`, also in `weights/`)
 
-Weights are not committed: `data/`, `runs/` and `*.pt` are ignored. Fetch `yolocar` with
+The nano model is `weights/aerial-car-nano.pt` (5.7 MB, the `n_lr1e3` run; also attached to release `v0.1.0`). Use it with
+`cardet.detect.yolo_predictor('weights/aerial-car-nano.pt')` at 2x, or `python3 -m cardet.clean --weights weights/aerial-car-nano.pt`.
+Other weights, `data/` and `runs/` are not committed. Fetch `yolocar` with
 `curl -L -o data/models/yolocar-11n.pt https://huggingface.co/wuhp/yolocar/resolve/main/car-75e-11n.pt`.
 
 ## More places
