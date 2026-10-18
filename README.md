@@ -1,7 +1,7 @@
 # aerial-car-detector
 
 A **fine-tuned YOLO11n** detector (2.6 million parameters, a 5.7 MB weights file) for **cars in 25 cm aerial photos**, built to paint
-parked cars out of aerial imagery (otherwise they end up flat on the road when the photo is draped over 3D terrain).
+parked cars out of aerial imagery.
 
 ![cars found by the nano model on a Norwich tile](docs/hero.jpg)
 
