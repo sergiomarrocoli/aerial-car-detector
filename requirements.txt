@@ -5,3 +5,4 @@ ultralytics
 transformers
 pytest
 matplotlib
+requests

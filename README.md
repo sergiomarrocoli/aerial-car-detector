@@ -180,8 +180,9 @@ Other weights, `data/` and `runs/` are not committed. Fetch `yolocar` with
 
 ## More places
 
-`cardet/fetch_area.py` fetches a 1 km box of Esri imagery and OpenStreetMap buildings for named places (Bristol, Cardiff,
-Manchester, Edinburgh, Swindon, Leeds, Brighton, Aberystwyth, plus Norwich and Plymouth kept for the clean test; add a line to try another) and writes a small bundle
+`python3 -m cardet.fetch_area data/areas norwich plymouth` fetches a 1 km box of Esri imagery (resampled to 0.25 m/px) and
+OpenStreetMap buildings for named places (Bristol, Cardiff, Manchester, Edinburgh, Swindon, Leeds, Brighton, Aberystwyth,
+plus Norwich and Plymouth kept for the clean test; `--at LAT LON name` fetches anywhere) and writes a small bundle
 that `cardet.prepare` cuts into tiles, pre-labelled by the current best weights. Where the model fails: per-tile
 scores on the held-out set showed dense city streets with buses and shadows (Bath `b03` F1 0.59, Shrewsbury `e03` 0.72)
 are much worse than Newtown (0.83 to 0.87), so new tiles lean towards those. Vehicles over 28 px (buses, lorries) now keep
