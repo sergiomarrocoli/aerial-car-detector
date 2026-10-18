@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aerial-car-detector"
+version = "0.2.0"
+description = "A fine-tuned YOLO11n that finds cars in 25 cm aerial photos, and paints them out"
+requires-python = ">=3.9"
+dependencies = ["numpy", "pillow", "opencv-python-headless", "ultralytics"]
+
+[tool.setuptools]
+packages = ["cardet"]
+
+[tool.setuptools.package-data]
+cardet = ["models/*.pt", "labeller.html"]

@@ -173,8 +173,18 @@ towns.
    dark patches remain where shadows were filled, and some rail wagons are still partly removed
 4. Publish the weights (done: release `v0.1.0`, also in `weights/`)
 
-The nano model is `weights/aerial-car-nano.pt` (5.7 MB, the `n_lr1e3` run; also attached to release `v0.1.0`). Use it with
-`cardet.detect.yolo_predictor('weights/aerial-car-nano.pt')` at 2x, or `python3 -m cardet.clean --weights weights/aerial-car-nano.pt`.
+The nano model ships inside the package: `cardet/models/aerial-car-nano.pt` (5.7 MB, the `n_lr1e3` run; also attached to
+release `v0.1.0`). Install the library and remove cars from an image with one call:
+
+```
+pip install git+https://github.com/sergiomarrocoli/aerial-car-detector.git@v0.2.0
+```
+```python
+from cardet.api import remove_cars
+cleaned, boxes = remove_cars(rgb, buildings=mask)    # rgb: 25 cm/px uint8 array; mask: optional building footprints
+```
+
+Or from the command line, `python3 -m cardet.clean <bundle> --weights cardet/models/aerial-car-nano.pt --out clean.jpg`.
 Other weights, `data/` and `runs/` are not committed. Fetch `yolocar` with
 `curl -L -o data/models/yolocar-11n.pt https://huggingface.co/wuhp/yolocar/resolve/main/car-75e-11n.pt`.
 

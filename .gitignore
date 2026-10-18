@@ -7,4 +7,4 @@ __pycache__/
 cloud/car-data.zip
 cloud/car-runs/
 cloud/car-runs-*.zip
-!weights/*.pt
+!cardet/models/*.pt
