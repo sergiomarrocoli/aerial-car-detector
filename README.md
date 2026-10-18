@@ -3,6 +3,12 @@
 A small detector for **cars in 25 cm aerial photos**, trained to paint parked cars out of the imagery used by
 [civil-war](https://github.com/sergiomarrocoli/civil-war) (they otherwise end up flat on the road).
 
+![cars found by the nano model on a Norwich tile](docs/hero.jpg)
+
+Detections (confidence 0.3 or more) from the nano model on a crop of Norwich, a town it never trained on. Boxes are a fixed
+20 px (5 m) square on each car's centre, so packed bays overlap. A few misses and false hits remain (a bush near the
+roundabout, a bin store at the right).
+
 ## What we found
 
 Cars are ~18 x 7 px in our 25 cm imagery. On a Newtown crop with ~150 cars:
@@ -144,6 +150,17 @@ data crashed at epoch 4 on the Apple GPU (about 4 min per epoch) and was dropped
   round 1 boxes (see above); the Norwich and Plymouth tiles are the clean test.
 - Labels are only as complete as the labelling was; a few real cars are unlabelled, which lowers measured precision.
 - Cars cut by the edge of a tile are labelled as clipped boxes; `detect.py` drops half-cars at inner window edges.
+
+### Next: broader, not deeper
+
+The clean-tile score (about 0.75 in unseen towns against 0.85 to 0.87 near the training places) suggests more places will
+help more than more epochs or a bigger model: the imagery varies a lot by town and capture date (Plymouth is dark and
+soft, Newtown crisp), so the model has seen too few kinds of picture. Not started. Plan: one or two tiles from each of
+20 or so towns spread across the UK (Glasgow, Belfast, Birmingham, Liverpool, Newcastle, Sheffield, Nottingham, Leicester,
+Oxford, Cambridge, Exeter, Southampton, Inverness, Carlisle, Hull, Ipswich and so on), whole towns held out so the test
+measures new places, and the nano model (`data/models/yolocar-nano-v2.pt`, the `n_lr1e3` run, about 6 MB) as the detector
+that pre-draws the boxes. For now the nano model is the one we use: it scores the same as the 19 MB small model in unseen
+towns.
 
 ## Plan
 
