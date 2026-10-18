@@ -99,6 +99,21 @@ epoch for the nano model). Scored with the same 2 m match, best F1 over confiden
 
 ![nano and small training curves](docs/training-curves-cloud.png)
 
+**Clean tiles (Norwich, Plymouth: 4 tiles, 223 cars), best F1 over confidence 0.1 to 0.5**
+
+| Model | Best F1 | Precision / recall there |
+|---|---|---|
+| `yolocar` as downloaded | 0.78 (flattered: the boxes began from it) | 0.89 / 0.70 at conf 0.1 |
+| round 1 fine-tune | 0.72 | 0.76 / 0.68 at conf 0.2 |
+| nano `n_120` | 0.74 | 0.83 / 0.67 at conf 0.4 |
+| nano `n_lr1e3` | 0.77 | 0.84 / 0.71 at conf 0.4 |
+| small `s_lr5e4` | 0.73 | 0.83 / 0.65 at conf 0.4 |
+
+On towns none of the models saw, every fine-tune lands around 0.72 to 0.77, well below the 0.85 to 0.87 on the original
+six tiles. The truth boxes began from the downloaded `yolocar`, so its row is inflated, and four tiles of 223 cars give
+differences of a few points that mean nothing. Honest reading: the fine-tuned models are not shown to generalise better
+than the downloaded one, and the real accuracy in a new town is about 0.75, not 0.85.
+
 - On the six tiles that were never part of any labelling-by-detector, the new data helps: 0.81 to 0.85 (nano) and 0.87
   (small). The small model is the one to use.
 - The "new place" column is biased towards round 1: its boxes were drawn by the round 1 model and then corrected, so cars
