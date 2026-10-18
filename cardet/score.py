@@ -1,6 +1,7 @@
 """Print precision / recall / F1 of weights on the held-out tiles.
 
-python3 -m cardet.score data/newtown weights.pt
+python3 -m cardet.score data/newtown weights.pt [clean]
+With `clean` it scores the tiles in CLEAN_TILES (unseen towns, labelled without a fine-tuned model) instead of VAL_TILES.
 Boxes centred on building footprints are dropped (using each tile's bundle), as in the real pipeline.
 """
 import json
@@ -10,7 +11,7 @@ from pathlib import Path
 from PIL import Image
 
 from .blobs import building_mask
-from .dataset import VAL_TILES, load_tiles
+from .dataset import CLEAN_TILES, VAL_TILES, load_tiles
 from .evaluate import evaluate
 
 Image.MAX_IMAGE_PIXELS = None
@@ -35,8 +36,9 @@ def tile_masks(folder):
 
 if __name__ == "__main__":
     folder, weights = sys.argv[1], sys.argv[2]
+    names = CLEAN_TILES if sys.argv[3:] == ["clean"] else VAL_TILES
     masks = tile_masks(folder)
-    tiles = [(image, centres, masks.get(name)) for name, image, centres in load_tiles(folder) if name in VAL_TILES]
+    tiles = [(image, centres, masks.get(name)) for name, image, centres in load_tiles(folder) if name in names]
     rows, n = evaluate(weights, tiles)
     print(f"{weights}: {n} cars in {len(tiles)} held-out tiles" + (" (buildings masked)" if masks else ""))
     for t, p, r, f1 in rows:

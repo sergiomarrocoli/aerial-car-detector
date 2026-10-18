@@ -20,6 +20,8 @@ AREAS = {   # name: (latitude, longitude) of the centre
     "leeds": (53.8200, -1.5800),         # terraced suburbs
     "brighton": (50.8300, -0.1400),
     "aberystwyth": (52.4140, -4.0830),   # small seaside town
+    "norwich": (52.6309, 1.2974),        # unseen towns for the clean held-out tiles
+    "plymouth": (50.3755, -4.1427),
 }
 
 

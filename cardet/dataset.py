@@ -14,6 +14,7 @@ BOX_PX = 20     # original pixels (a 4.5 m car is ~18 px long at 0.25 m/px)
 LARGE_PX = 28   # a labelled vehicle longer than this (a bus, a lorry) keeps its real size instead of the fixed box
 SCALE = 2
 VAL_TILES = ("t03", "t08", "b03", "b06", "e03", "w01", "r02", "c02", "m01", "d02", "s02", "l02", "g02", "a02")   # original six, plus one tile from each of the eight newer cities
+CLEAN_TILES = ("x01", "x02", "y01", "y02")   # Norwich, Plymouth: drawn from a detector no fine-tune derives from; never trained on, scored apart
 
 
 def load_tiles(folder):
@@ -74,6 +75,8 @@ def build(folder, out, val=VAL_TILES, rot90=True):
     out = Path(out)
     counts = {"train": 0, "val": 0}
     for name, (image, boxes) in load_labels(folder).items():
+        if name in CLEAN_TILES:
+            continue
         centres = [(b["cx"], b["cy"]) for b in boxes]
         sizes = [box_size(b) for b in boxes]
         split = "val" if name in val else "train"

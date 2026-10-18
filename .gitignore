@@ -5,3 +5,5 @@ __pycache__/
 .venv/
 *.pt
 cloud/car-data.zip
+cloud/car-runs/
+cloud/car-runs-*.zip

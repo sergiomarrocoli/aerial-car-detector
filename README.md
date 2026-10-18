@@ -81,6 +81,34 @@ A detection is right if its centre is within 2 m (8 px) of a labelled car; build
 
 Best F1 goes from 0.70 to 0.81. At about the same precision (0.80 vs 0.83) recall rises from 0.61 to 0.81.
 
+### Round 2: 6,792 cars from 12 places, trained on a cloud GPU
+
+72 tiles (Newtown, Bath, Shrewsbury, Porthmadog, plus Bristol, Cardiff, Manchester, Edinburgh, Swindon, Leeds, Brighton and
+Aberystwyth), 6,792 labelled cars, large vehicles at their real size. Held out: 14 tiles, 1,381 cars (the original six plus
+one tile from each of the eight newer places). Runs on a Colab T4 (`cloud/train.ipynb`; 116 training images, 6 s per
+epoch for the nano model). Scored with the same 2 m match, best F1 over confidence 0.1 to 0.5:
+
+| Model | Epochs | Original six tiles (527 cars) | Eight new-place tiles (854 cars) | All 14 |
+|---|---|---|---|---|
+| round 1 fine-tune (`ycA`-style, 3,194 cars) | 60 | 0.81 | **0.85** (see caveat) | **0.81** |
+| nano, lr 0.0005 (`n_120`) | 120 | 0.85 | 0.77 | 0.80 |
+| nano, other seed (`n_seed1`) | 120 | n/a | n/a | 0.80 |
+| nano, lr 0.001 (`n_lr1e3`) | 120 | 0.85 | 0.78 | 0.80 |
+| nano, 1920 px input (`n_img1920`) | 120 | n/a | n/a | 0.80 |
+| small, lr 0.0005 (`s_lr5e4`, 19 MB) | 120 | **0.87** | 0.78 | 0.81 |
+
+![nano and small training curves](docs/training-curves-cloud.png)
+
+- On the six tiles that were never part of any labelling-by-detector, the new data helps: 0.81 to 0.85 (nano) and 0.87
+  (small). The small model is the one to use.
+- The "new place" column is biased towards round 1: its boxes were drawn by the round 1 model and then corrected, so cars
+  it found are in the truth set and cars it missed are less likely to be. Read that column as "round 1 marked against its
+  own homework". `x01`, `x02` (Norwich) and `y01`, `y02` (Plymouth) were pre-drawn by the plain downloaded `yolocar`
+  instead, are never trained on (`CLEAN_TILES`), and are scored apart with `python3 -m cardet.score data/newtown <weights> clean`.
+- Run to run noise is about 0.002 F1 (two seeds), so lr 0.001 and 1920 px input changed nothing real.
+- The medium COCO model ran out of GPU memory at batch 8 on the T4 and was dropped. Small from COCO at lr 0.002 collapsed
+  between epochs 5 and 10 (learning rate too high); at 0.0005 it trains smoothly.
+
 ### Earlier attempts (first 8 Newtown tiles only; 543 train cars, 136 held out, all Newtown)
 
 | Weights | Best F1 |
@@ -96,8 +124,9 @@ data crashed at epoch 4 on the Apple GPU (about 4 min per epoch) and was dropped
 
 ### Caveats
 
-- The test tiles come from the same four areas as the training tiles (different tiles, same streets and imagery
-  style), so the score says little about places never seen. Try a new town before trusting it elsewhere.
+- The round 1 test tiles come from the same four areas as the training tiles (different tiles, same streets and imagery
+  style), so that score says little about places never seen. Round 2 adds eight places, but their truth was drawn from
+  round 1 boxes (see above); the Norwich and Plymouth tiles are the clean test.
 - Labels are only as complete as the labelling was; a few real cars are unlabelled, which lowers measured precision.
 - Cars cut by the edge of a tile are labelled as clipped boxes; `detect.py` drops half-cars at inner window edges.
 
@@ -118,7 +147,7 @@ Weights are not committed: `data/`, `runs/` and `*.pt` are ignored. Fetch `yoloc
 ## More places
 
 `cardet/fetch_area.py` fetches a 1 km box of Esri imagery and OpenStreetMap buildings for named places (Bristol, Cardiff,
-Manchester, Edinburgh, Swindon, Leeds, Brighton, Aberystwyth so far; add a line to try another) and writes a small bundle
+Manchester, Edinburgh, Swindon, Leeds, Brighton, Aberystwyth, plus Norwich and Plymouth kept for the clean test; add a line to try another) and writes a small bundle
 that `cardet.prepare` cuts into tiles, pre-labelled by the current best weights. Where the model fails: per-tile
 scores on the held-out set showed dense city streets with buses and shadows (Bath `b03` F1 0.59, Shrewsbury `e03` 0.72)
 are much worse than Newtown (0.83 to 0.87), so new tiles lean towards those. Vehicles over 28 px (buses, lorries) now keep
