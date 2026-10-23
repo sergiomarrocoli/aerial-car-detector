@@ -164,6 +164,14 @@ towns.
 
 ## Plan
 
+![the station road: original, cars removed using the downloaded model, cars removed using the fine-tuned model](docs/compare-station.jpg)
+
+Vehicle removal on a Newtown station road, left to right: the original imagery; cars removed using the downloaded
+`yolocar` model's detections; cars removed using this project's fine-tuned nano model's detections. In both, the
+detected cars are masked and painted out with OpenCV's Telea inpainting, then given grain matched to the surrounding
+tarmac (`cardet/fill.py`). Only the detector differs, so the difference between the two right-hand panels is how many
+cars each one found.
+
 1. Run the detector at 2x (`cardet/detect.py`), buildings masked, confidence about 0.2 to 0.3 with the fine-tuned weights
 2. Fill the cars out of the imagery (`cardet/fill.py`, `python3 -m cardet.clean`); before and after for the downloaded
    model: `docs/before-after-centre.jpg`, `docs/before-after-station.jpg`
