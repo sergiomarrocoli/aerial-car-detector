@@ -5,6 +5,8 @@ parked cars out of aerial imagery.
 
 ![cars found by the nano model on a Norwich tile](docs/hero.jpg)
 
+<sub>Imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community.</sub>
+
 Detections (confidence 0.3 or more) from the nano model on a crop of Norwich, a town it never trained on. Boxes run from
 yellow (just over the 0.3 cutoff) to red (0.8 or more confident) and are a fixed 20 px (5 m) square on each car's centre,
 so packed bays overlap. A few misses and false hits remain (bushes near the roundabout, a bin store at the right), mostly
@@ -166,6 +168,8 @@ towns.
 ## Plan
 
 ![the station road: original, cars removed using the downloaded model, cars removed using the fine-tuned model](docs/compare-station.jpg)
+
+<sub>Imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community.</sub>
 
 Vehicle removal on a Newtown station road, left to right: the original imagery; cars removed using the downloaded
 `yolocar` model's detections; cars removed using this project's fine-tuned nano model's detections. In both, the
