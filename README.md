@@ -5,9 +5,10 @@ parked cars out of aerial imagery.
 
 ![cars found by the nano model on a Norwich tile](docs/hero.jpg)
 
-Detections (confidence 0.3 or more) from the nano model on a crop of Norwich, a town it never trained on. Boxes are a fixed
-20 px (5 m) square on each car's centre, so packed bays overlap. A few misses and false hits remain (a bush near the
-roundabout, a bin store at the right).
+Detections (confidence 0.3 or more) from the nano model on a crop of Norwich, a town it never trained on. Boxes run from
+yellow (just over the 0.3 cutoff) to red (0.8 or more confident) and are a fixed 20 px (5 m) square on each car's centre,
+so packed bays overlap. A few misses and false hits remain (bushes near the roundabout, a bin store at the right), mostly
+the yellow and orange boxes.
 
 ## What we found
 
