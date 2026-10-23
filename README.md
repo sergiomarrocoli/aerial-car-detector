@@ -215,3 +215,10 @@ when every car in a tile has a box. Omit `--weights` to pre-draw with the colour
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python -m pytest
 ```
+
+## Image credits
+
+The aerial screenshots in `docs/` are crops of Esri World Imagery, shown for illustration only. Imagery © Esri, Maxar,
+Earthstar Geographics and the GIS User Community. This repository does not include the source imagery, and it is not
+covered by this project's licence; `cardet.fetch_area` downloads it for you, subject to
+[Esri's terms of use](https://www.esri.com/en-us/legal/terms/full-master-agreement).
