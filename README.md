@@ -235,3 +235,9 @@ The aerial screenshots in `docs/` are crops of Esri World Imagery, shown for ill
 Earthstar Geographics and the GIS User Community. This repository does not include the source imagery;
 `cardet.fetch_area` downloads it for you, subject to
 [Esri's terms of use](https://www.esri.com/en-us/legal/terms/full-master-agreement).
+
+## Licence
+
+Licensed under the [GNU AGPL-3.0](LICENSE). The detector is built on [Ultralytics](https://github.com/ultralytics/ultralytics)
+YOLO11, which is also AGPL-3.0, and the weights in `cardet/models/` are fine-tuned from its weights. The Esri imagery in
+the screenshots is not covered by this licence (see Image credits).
