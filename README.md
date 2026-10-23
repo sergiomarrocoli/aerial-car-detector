@@ -219,6 +219,6 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ## Image credits
 
 The aerial screenshots in `docs/` are crops of Esri World Imagery, shown for illustration only. Imagery © Esri, Maxar,
-Earthstar Geographics and the GIS User Community. This repository does not include the source imagery, and it is not
-covered by this project's licence; `cardet.fetch_area` downloads it for you, subject to
+Earthstar Geographics and the GIS User Community. This repository does not include the source imagery;
+`cardet.fetch_area` downloads it for you, subject to
 [Esri's terms of use](https://www.esri.com/en-us/legal/terms/full-master-agreement).
